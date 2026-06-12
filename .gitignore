@@ -1,0 +1,47 @@
+# Nirvana Git Ignore Configuration
+
+# Dependencies
+node_modules/
+**/node_modules/
+.pnp
+.pnp.*
+
+# Testing & Coverage
+coverage/
+**/coverage/
+
+# Next.js build outputs
+.next/
+**/.next/
+out/
+**/out/
+build/
+**/build/
+
+# Python virtual environment
+venv/
+**/venv/
+.venv/
+**/.venv/
+env/
+**/env/
+
+# Python cache & compiler outputs
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Operating system files
+.DS_Store
+Thumbs.db
+*.pem
+
+# IDE / Editor configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
