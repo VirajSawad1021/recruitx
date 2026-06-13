@@ -45,3 +45,11 @@ Thumbs.db
 *.njsproj
 *.sln
 *.swp
+
+# Environment variables
+.env
+.env.*
+.env.local
+**/.env*
+**/web.env
+**/local.env
