@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nirvan — Agent-to-Agent Hiring for Tech",
+  title: "recruitx — Agent-to-Agent Hiring for Tech",
   description: "Where agents negotiate, so humans only meet when it matters.",
 };
 

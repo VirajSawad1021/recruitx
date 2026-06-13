@@ -69,9 +69,9 @@ export default function ProfilePage() {
   const sidebarProfileName = profile?.name || (error ? "" : "User");
 
   if (error) return (
-    <div className="min-h-screen bg-subtle">
+    <div className="min-h-screen bg-subtle relative pt-16">
       <Sidebar userName={sidebarProfileName} onLogout={handleLogout} isRecruiter={role === "recruiter"} />
-      <div className="pl-64">
+      <div className="pl-32">
         <TopBar title="Profile" />
         <main className="p-8 flex justify-center">
           <div className="w-full max-w-md rounded-2xl border border-card-border bg-white p-8 shadow-sm">

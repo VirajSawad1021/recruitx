@@ -256,10 +256,10 @@ export default function NegotiationPage() {
               &larr; Dashboard
             </Link>
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-accent-gradient shadow-sm">
-              <span className="text-sm font-bold text-white">A</span>
+              <span className="text-sm font-bold text-white">H</span>
             </div>
             <span className="text-lg font-semibold text-foreground">
-              Nirvan
+              recruitx
             </span>
           </div>
           <div className="flex items-center gap-4">
