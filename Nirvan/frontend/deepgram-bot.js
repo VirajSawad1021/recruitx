@@ -30,17 +30,21 @@ const supabaseAnonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 // Get Deepgram API Key from environment, .env.local, or direct fallback
 const deepgramApiKey = process.env.DEEPGRAM_API_KEY || env.DEEPGRAM_API_KEY || "28f86de5838375a5c95fb1ba60954c4f477399a2";
 
-// Parse optional Agent ID from command line arguments, defaulting to null
+// Parse command line arguments for optional Agent ID and target Meet URL
 const args = process.argv.slice(2);
-let agentId = null; // Default Reusable Agent Config ID is null (uses inline configuration)
+let agentId = null;
+let cliMeetUrl = null;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--agent-id' && args[i + 1]) {
     agentId = args[i + 1];
-    break;
+    i++;
+  } else if (args[i].includes('meet.google.com')) {
+    cliMeetUrl = args[i];
   } else if (!args[i].startsWith('-')) {
-    agentId = args[i]; // positional fallback
-    break;
+    if (args[i].length === 40) {
+      agentId = args[i];
+    }
   }
 }
 
@@ -133,8 +137,8 @@ async function getLatestMeetLink() {
     process.exit(1);
   }
 
-  const meetUrl = await getLatestMeetLink();
-  console.log(`📡 Fetched target Google Meet: ${meetUrl}`);
+  const meetUrl = cliMeetUrl || await getLatestMeetLink();
+  console.log(`📡 Target Google Meet: ${meetUrl}`);
 
   // 2. Open WebSocket connection to Deepgram Voice Agent API
   console.log('🔌 Connecting to Deepgram Voice Agent WebSocket...');
@@ -200,11 +204,9 @@ async function getLatestMeetLink() {
     }
   };
 
-  await page.goto(meetUrl);
-
-  // 4. Inject Google Meet WebRTC Audio Bridge
+  // 4. Inject Google Meet WebRTC Audio Bridge BEFORE navigation
   console.log('⚙️ Injecting WebRTC audio capture & microphone spoofing scripts...');
-  await page.evaluateOnNewDocument(() => {
+  await page.addInitScript(() => {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const destination = audioCtx.createMediaStreamDestination();
 
@@ -298,6 +300,10 @@ async function getLatestMeetLink() {
       return originalAddEventListener.call(this, type, listener, options);
     };
   });
+
+  // Navigate to Google Meet room
+  console.log(`🌐 Navigating browser to Google Meet: ${meetUrl}`);
+  await page.goto(meetUrl);
 
   // Enter Meet UI
   try {
