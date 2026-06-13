@@ -26,11 +26,8 @@ export default function Footer() {
       <div className="relative mx-auto max-w-7xl px-6">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-1">
-            <Link href="/" className="group flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-accent-gradient transition-transform duration-300 group-hover:scale-110 shadow-sm">
-                <span className="text-sm font-bold text-white">A</span>
-              </div>
-              <span className="text-lg font-semibold text-foreground">Nirvan</span>
+            <Link href="/" className="group flex items-center gap-2">
+              <img src="/recruit.png" alt="recruitx" className="h-9 w-auto object-contain" />
             </Link>
             <p className="mt-4 text-sm text-muted max-w-xs">
               Agent-to-Agent hiring for the tech industry. Where agents negotiate, so humans only meet when it matters.
@@ -52,7 +49,7 @@ export default function Footer() {
           ))}
         </div>
         <div className="mt-16 border-t border-card-border/60 pt-8 text-center text-xs text-muted">
-          &copy; {new Date().getFullYear()} Nirvan. All rights reserved.
+          &copy; {new Date().getFullYear()} recruitx. All rights reserved.
         </div>
       </div>
     </footer>

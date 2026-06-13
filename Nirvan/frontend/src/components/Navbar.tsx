@@ -4,7 +4,12 @@ import Link from "next/link";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 import { useState } from "react";
 
-const links = ["How it works", "Platform", "Pricing", "Docs"];
+const links = [
+  { label: "How it works", href: "#how-it-works" },
+  { label: "Platform", href: "#platform" },
+  { label: "Pricing", href: "#pricing" },
+  { label: "Docs", href: "#" },
+];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
@@ -25,22 +30,18 @@ export default function Navbar() {
       }`}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent to-accent-gradient transition-transform duration-300 group-hover:scale-110 shadow-sm">
-            <span className="text-sm font-bold text-white">A</span>
-            <div className="absolute inset-0 rounded-lg bg-accent/20 blur-lg opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
-          <span className="text-lg font-semibold text-foreground">Nirvan</span>
+        <Link href="/" className="flex items-center gap-2 group">
+          <img src="/recruit.png" alt="recruitx" className="h-9 w-auto object-contain" />
         </Link>
 
         <div className="hidden items-center gap-8 md:flex">
           {links.map((l) => (
             <a
-              key={l}
-              href="#"
+              key={l.label}
+              href={l.href}
               className="relative text-sm text-muted transition-colors hover:text-foreground after:absolute after:-bottom-1 after:left-0 after:h-[2px] after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full"
             >
-              {l}
+              {l.label}
             </a>
           ))}
         </div>
@@ -74,7 +75,7 @@ export default function Navbar() {
         >
           <div className="flex flex-col gap-4">
             {links.map((l) => (
-              <a key={l} href="#" className="text-sm text-muted">{l}</a>
+              <a key={l.label} href={l.href} className="text-sm text-muted">{l.label}</a>
             ))}
             <a href="/auth" className="text-sm text-muted">Sign in</a>
             <a href="/auth" className="rounded-lg bg-foreground px-4 py-2 text-center text-sm font-medium text-white">

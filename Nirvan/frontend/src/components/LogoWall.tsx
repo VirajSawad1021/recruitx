@@ -9,7 +9,7 @@ const logos = [
 
 export default function LogoWall() {
   return (
-    <section className="border-b border-card-border bg-white py-16">
+    <section className="border-b border-card-border bg-background py-16">
       <div className="mx-auto max-w-7xl px-6">
         <ScrollReveal y={10}>
           <p className="text-center text-xs font-semibold uppercase tracking-widest text-muted/60">
