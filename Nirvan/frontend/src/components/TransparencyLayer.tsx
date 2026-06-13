@@ -94,7 +94,7 @@ export default function TransparencyLayer() {
                 Nobody gets ghosted. <span className="text-gradient">Every exit has a reason.</span>
               </h2>
               <p className="mt-4 text-base leading-relaxed text-muted">
-                This is the feature that makes Nirvan fundamentally different from every existing platform.
+                This is the feature that makes recruitx fundamentally different from every existing platform.
                 Both sides always know why. Every dealbreaker, every exit — transparent to both agents in real time.
               </p>
               <a href="#" className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent-dark transition-colors">

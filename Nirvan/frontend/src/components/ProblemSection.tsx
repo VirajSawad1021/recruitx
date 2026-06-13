@@ -59,7 +59,7 @@ function BeforeAfterCards() {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-accent" />
-            <span className="text-xs font-semibold text-muted/70 uppercase tracking-wider">Nirvan</span>
+            <span className="text-xs font-semibold text-muted/70 uppercase tracking-wider">recruitx</span>
           </div>
           <ComparisonBar label="Relevant" width={visible ? "94%" : "0%"} color="bg-accent/60" delay={0.3} />
           <ComparisonBar label="Response" width={visible ? "88%" : "0%"} color="bg-accent/40" delay={0.5} />
@@ -88,12 +88,12 @@ export default function ProblemSection() {
         <div className="grid items-center gap-12 md:grid-cols-2">
           <ScrollReveal>
             <div>
-              <span className="text-xs font-semibold uppercase tracking-widest text-accent">Revenue agents at your command</span>
+              <span className="text-xs font-semibold uppercase tracking-widest text-accent">Hiring agents at your command</span>
               <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
                 The intelligent system that <span className="text-gradient">never sleeps.</span>
               </h2>
               <p className="mt-4 text-base leading-relaxed text-muted">
-                Picks up leads at 2am. Catches renewals before they slip. Hands you the answer before you ask.
+                Finds top talent at 2am. Connects with candidates before they sign elsewhere. Hands you the shortlist before you log in.
                 Every developer knows the feeling: 150 applications sent, 4 responses, zero feedback.
                 Every recruiter knows the opposite: 600 resumes, 90% irrelevant, no way to tell what&apos;s real.
               </p>

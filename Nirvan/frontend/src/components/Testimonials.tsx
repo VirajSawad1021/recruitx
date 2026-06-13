@@ -6,19 +6,19 @@ import ScrollReveal from "./ui/ScrollReveal";
 
 const testimonials = [
   {
-    quote: "I set up my Nirvan profile on Sunday evening. By Monday morning, my agent had reviewed 23 companies, rejected 19 as poor fits, negotiated with 4, and booked me three interviews. I did nothing.",
+    quote: "I set up my recruitx profile on Sunday evening. By Monday morning, my agent had reviewed 23 companies, rejected 19 as poor fits, negotiated with 4, and booked me three interviews. I did nothing.",
     author: "Rahul K.",
     role: "Senior Frontend Engineer",
     type: "Candidate",
   },
   {
-    quote: "We posted a role and got 500+ applicants in 48 hours. Nirvan's agent screened all of them overnight, surfaced 12 genuine matches, and started negotiations before I even had coffee. That's not efficiency — that's a superpower.",
+    quote: "We posted a role and got 500+ applicants in 48 hours. recruitx's agent screened all of them overnight, surfaced 12 genuine matches, and started negotiations before I even had coffee. That's not efficiency — that's a superpower.",
     author: "Sarah Chen",
     role: "CTO at a Series A startup",
     type: "Recruiter",
   },
   {
-    quote: "The transparency layer alone is worth it. I've been ghosted by more companies than I can count. Nirvan tells me exactly why — salary band mismatch, culture flag, whatever — and I can adjust and move on immediately.",
+    quote: "The transparency layer alone is worth it. I've been ghosted by more companies than I can count. recruitx tells me exactly why — salary band mismatch, culture flag, whatever — and I can adjust and move on immediately.",
     author: "James M.",
     role: "Full-Stack Developer",
     type: "Candidate",
