@@ -85,10 +85,11 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ## 👥 Team Resham Firiri
 
-| Name | Role |
-|------|------|
-| Viraj Sawad | Full-stack, Frontend, Integration |
-| Pratik Ban | Backend agents, LangGraph, API |
+- Viraj Sawad
+- Pratik Ban
+- Sampada KC
+- Roshan Koirala
+- Aakriti Pandey
 
 ---
 
