@@ -496,3 +496,13 @@ export async function getInterviewKit(negotiationId: string) {
     return null;
   }
 }
+
+export async function getRejectionInsights(candidateId: string, mock: boolean = false) {
+  try {
+    const res = await apiFetch(`/api/candidates/${candidateId}/rejection-insights?mock=${mock}`);
+    return safeJson(res, null);
+  } catch (err) {
+    console.error("getRejectionInsights failed:", err);
+    return null;
+  }
+}

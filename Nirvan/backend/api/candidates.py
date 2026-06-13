@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import io
 import json
@@ -294,3 +294,213 @@ Otherwise, provide a comprehensive "Interview Prep & Negotiation Review" report.
         )
 
     return {"response": coach_response}
+
+
+@router.get("/{candidate_id}/rejection-insights")
+async def get_candidate_rejection_insights(
+    candidate_id: str,
+    mock: bool = False,
+    user=Depends(get_current_user),
+):
+    db = get_db()
+    
+    cand_res = db.table("candidates").select("*").eq("id", candidate_id).execute()
+    if not cand_res.data:
+        raise HTTPException(status_code=404, detail="Candidate not found")
+    cand = cand_res.data[0]
+    
+    assert_profile_owner(cand["profile_id"], user)
+    
+    import datetime
+    from collections import Counter
+    
+    cutoff_date = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=90)).isoformat()
+    
+    neg_res = (
+        db.table("negotiations")
+        .select("*, recruiter:recruiters(company), jobs:jobs(*)")
+        .eq("candidate_id", candidate_id)
+        .in_("status", ["rejected", "closed_no_fit"])
+        .gte("created_at", cutoff_date)
+        .execute()
+    )
+    
+    rejections = neg_res.data or []
+    
+    if len(rejections) < 3 and not mock:
+        return {
+            "insufficient_data": True,
+            "message": f"Not enough data yet — accumulated {len(rejections)} rejection(s) in the last 90 days. We need 3+ rejections to generate patterns.",
+            "rejection_count": len(rejections),
+        }
+        
+    if len(rejections) < 3 and mock:
+        rejections = [
+            {
+                "id": "mock-neg-1",
+                "status": "rejected",
+                "recruiter": {"company": "Stripe"},
+                "rejection_reasons": "Salary expectation mismatch. Candidate is looking for 120k NPR, which is above our budget range (85k-100k).",
+                "rejection_categories": ["salary_mismatch"],
+                "created_at": (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=5)).isoformat(),
+                "recruiter_notes": "Salary mismatch: Candidate demands 120000 NPR, which is above Stripe ceiling.",
+                "candidate_notes": "job_id:mock-job-1",
+            },
+            {
+                "id": "mock-neg-2",
+                "status": "rejected",
+                "recruiter": {"company": "TechCorp"},
+                "rejection_reasons": "Candidate lacks verified experience with Kubernetes and container orchestration which is required for our senior devops roles.",
+                "rejection_categories": ["skill_gap_verified"],
+                "created_at": (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=12)).isoformat(),
+                "recruiter_notes": "Skill gap: No Kubernetes or container orchestration found on GitHub or CV.",
+                "candidate_notes": "job_id:mock-job-2",
+            },
+            {
+                "id": "mock-neg-3",
+                "status": "rejected",
+                "recruiter": {"company": "Logpoint"},
+                "rejection_reasons": "Candidate notice period is 90 days. We need immediate joiners or 30 days max.",
+                "rejection_categories": ["availability_mismatch"],
+                "created_at": (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=18)).isoformat(),
+                "recruiter_notes": "Availability mismatch: Notice period is 90 days, we require 30 days.",
+                "candidate_notes": "job_id:mock-job-3",
+            },
+            {
+                "id": "mock-neg-4",
+                "status": "rejected",
+                "recruiter": {"company": "WebFlow"},
+                "rejection_reasons": "Salary expectation is too high. The candidate demands 120k base. Our limit is 100k.",
+                "rejection_categories": ["salary_mismatch"],
+                "created_at": (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=22)).isoformat(),
+                "recruiter_notes": "Salary mismatch: target is 120k, budget limit 100k.",
+                "candidate_notes": "job_id:mock-job-4",
+            },
+        ]
+        
+    rejection_reasons = []
+    rejection_categories = []
+    
+    for r in rejections:
+        reason = r.get("rejection_reasons")
+        cats = r.get("rejection_categories")
+        
+        if not reason:
+            notes = r.get("recruiter_notes") or ""
+            if notes.startswith("REJECT_INFO:"):
+                try:
+                    import json as json_lib
+                    meta = json_lib.loads(notes[len("REJECT_INFO:"):])
+                    reason = meta.get("rejection_reasons")
+                    cats = meta.get("rejection_categories")
+                except:
+                    pass
+            if not reason:
+                reason = notes or "Unspecified rejection feedback"
+                
+        if not cats:
+            cats = []
+            reason_lower = str(reason).lower()
+            if any(term in reason_lower for term in ["salary", "budget", "pay", "compensation"]):
+                cats.append("salary_mismatch")
+            if any(term in reason_lower for term in ["kubernetes", "docker", "devops", "skill", "experience", "gap"]):
+                cats.append("skill_gap_verified")
+            if any(term in reason_lower for term in ["availability", "notice", "days", "join"]):
+                cats.append("availability_mismatch")
+            if not cats:
+                cats.append("culture_mismatch")
+                
+        rejection_reasons.append(reason)
+        rejection_categories.extend(cats)
+        
+    category_counts = Counter(rejection_categories)
+    
+    target_skills = []
+    for r in rejections:
+        job_data = r.get("jobs")
+        if job_data and isinstance(job_data, dict):
+            stack = job_data.get("stack") or []
+            target_skills.extend(stack)
+            
+    if not target_skills:
+        target_skills = ["Python", "FastAPI", "LangGraph", "System Design", "Kubernetes", "MLOps"]
+        
+    import os
+    from openai import OpenAI
+    
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+        
+    client = OpenAI(api_key=api_key)
+    
+    prompt = f"""
+    You are the Arqveil Rejection Intelligence system.
+    Candidate profile:
+    - Target Role/Title: {cand.get("title")}
+    - Base Salary Floor: {cand.get("salary_min")} NPR
+    - Remote Preference: {cand.get("remote_pref")}
+    - Skills: {cand.get("skills")}
+    - GitHub Verified: {bool(cand.get("github_url"))}
+    - Human Expert Verified: {cand.get("salary_min", 0) >= 100000} (Senior)
+    - Availability / Notice Period: {cand.get("availability")}
+    
+    Rejection data across {len(rejections)} recent negotiations:
+    - Reasons: {rejection_reasons}
+    - Aggregated Category counts: {dict(category_counts)}
+    - Target Roles Skills required: {target_skills}
+    
+    Generate a Candidate Rejection Insight Report.
+    The response MUST be a JSON object containing exactly the following keys:
+    1. "summary": A short string summarizing the overall stats (e.g. "9 negotiations -> 2 fits, 7 rejections. Primary blocker is Salary expectation. Weakest signal is System Design.")
+    2. "patterns": A list of objects representing the primary causes of rejection, sorted by frequency. Each object has keys:
+       - "reason": The title/name of the rejection reason (e.g., "Salary expectation mismatch")
+       - "count": How many rejections it appeared in (e.g., 7)
+       - "total": The total number of rejections analyzed (e.g., 9)
+       - "details": Specific comparison details (e.g., "Your target: 120,000 NPR, Market range: 85,000-100,000 NPR")
+       - "recommendation": A short instruction (e.g., "Adjust target base salary to 95,000-105,000 NPR or verify system design skills to justify range.")
+    3. "skills_map": A list of objects representing candidate skills compared to target jobs. Each object has keys:
+       - "skill": Name of the skill (e.g., "Python", "System Design", "Kubernetes")
+       - "status": Verification status: "Verified Senior", "Verified Mid", "Claimed — Unverified", "Not Present", "Conversational"
+       - "strength": Integer rating from 0 to 100 representing signal strength (e.g., 100 for verified senior, 60 for verified mid, 30 for unverified, 0 for missing)
+       - "average_requirement_pct": Percentage of targeted jobs that require this skill (e.g., 87)
+    4. "next_steps": A list of objects representing ranked recommendations in order of impact. Each object has keys:
+       - "priority": Integer priority (1 is highest)
+       - "impact": String rating ("HIGHEST IMPACT", "HIGH IMPACT", "MEDIUM IMPACT", "QUICK WIN")
+       - "action": Brief summary of action (e.g., "Adjust salary expectation")
+       - "how": Detailed instruction on how to execute it (e.g., "Check with your current employer if 90 days is negotiable. Update availability to 30 days in settings.")
+       - "rationale": Why this helps (e.g., "Removes availability blocker from 33% of failed negotiations")
+       - "time_estimate": Time needed to fix (e.g., "Immediate", "2-3 weeks")
+       
+    Make all recommendations derived directly from the candidate data. Do not give generic advice. Respond ONLY with the JSON object.
+    """
+    
+    try:
+        import json as json_lib
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a professional hiring feedback assistant. Return only valid JSON."},
+                {"role": "user", "content": prompt},
+            ],
+            response_format={"type": "json_object"},
+        )
+        report = json_lib.loads(resp.choices[0].message.content or "{}")
+        
+        try:
+            cache_payload = {
+                "candidate_id": candidate_id,
+                "rejection_count": len(rejections),
+                "primary_patterns": report.get("patterns"),
+                "skill_weakness_map": report.get("skills_map"),
+                "recommendations": report.get("next_steps"),
+                "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            }
+            db.table("candidate_insights").upsert(cache_payload, on_conflict="candidate_id").execute()
+        except Exception:
+            pass
+            
+        return report
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"LLM insight generation failed: {str(e)}")
