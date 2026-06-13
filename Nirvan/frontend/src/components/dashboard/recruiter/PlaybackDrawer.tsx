@@ -102,8 +102,62 @@ const mockKits: Record<string, any> = {
         "suggested_follow_up": "How would you diagnose a memory leak in a React client?"
       }
     ]
+  },
+  "Nami": {
+    "translation_brief": "Nami is a promising Frontend Intern with strong design sensibilities and hands-on React/Tailwind experience. Her agent negotiated a $14,000 package for the WebFlow internship, successfully aligning on compensation expectations. Nami displays good fundamentals in component structure, but requires direct validation on global state management and web accessibility standard practices.",
+    "verified_skills_highlight": [
+      { "skill": "React", "evidence": "Verified 5 personal and class projects utilizing functional components and hooks." },
+      { "skill": "CSS & Tailwind", "evidence": "Designed several pixel-perfect, fully responsive landing pages." }
+    ],
+    "unverified_skills_probe": ["State Management (Zustand/Redux)", "Web accessibility (a11y) standards"],
+    "interview_questions": [
+      {
+        "question": "How do you manage global state in a complex React application? When would you choose a lightweight store like Zustand over Redux?",
+        "expected_signals": "Mentions store simplicity, boilerplate reduction, state subscription outside React, or devtools comparison.",
+        "weak_signals": "Doesn't understand what state management is or suggests local useState for everything.",
+        "suggested_follow_up": "How do you avoid unnecessary re-renders in Zustand?"
+      },
+      {
+        "question": "Describe your workflow for ensuring a web application is accessible and responsive across mobile devices.",
+        "expected_signals": "Mobile-first design, media queries, flexbox/grid, viewport units, semantic HTML, ARIA labels.",
+        "weak_signals": "Hardcodes absolute pixels (px) or only designs for standard desktop widths.",
+        "suggested_follow_up": "How do you test your designs for keyboard navigation?"
+      }
+    ]
+  },
+  "Usopp": {
+    "translation_brief": "Usopp is a junior QA Tester focusing on automated end-to-end testing frameworks. While he claims proficiency in testing complex application flows, his agent was rejected during negotiation due to a poor fit score and weak alignment on modern CI/CD automation and load testing frameworks.",
+    "verified_skills_highlight": [
+      { "skill": "Selenium", "evidence": "Scanned 2 test suites using basic Selenium WebDriver." },
+      { "skill": "Jest", "evidence": "Wrote unit tests for simple utility packages." }
+    ],
+    "unverified_skills_probe": ["CI/CD Pipeline Integration", "Performance & Load Testing"],
+    "interview_questions": [
+      {
+        "question": "How do you integrate automated E2E tests into a GitHub Actions CI/CD pipeline?",
+        "expected_signals": "Mentions workflow triggers, headless browser execution, node_modules caching, and test report artifacts.",
+        "weak_signals": "Only runs tests locally, doesn't understand automation pipeline configurations.",
+        "suggested_follow_up": "How do you handle flaky tests in a pipeline?"
+      }
+    ]
+  },
+  "Chopper": {
+    "translation_brief": "Chopper is a dedicated Data Analyst Intern with solid proficiency in data manipulation and SQL query optimization. His agent initiated active dialogue, aligning on a SQL-heavy stack. He shows strong competency in Pandas and basic modeling but needs vetting on advanced database schemas and ETL pipelines.",
+    "verified_skills_highlight": [
+      { "skill": "Python / Pandas", "evidence": "Analyzed and cleaned 3 large public datasets using Jupyter Notebooks." },
+      { "skill": "SQL", "evidence": "Wrote complex joins and aggregate queries in post-class exercises." }
+    ],
+    "unverified_skills_probe": ["ETL pipeline structures", "Database indexing & schema optimization"],
+    "interview_questions": [
+      {
+        "question": "How do you optimize a slow-running SQL query that involves multiple tables?",
+        "expected_signals": "Mentions EXPLAIN ANALYZE, database indexing, avoiding SELECT *, and query partitioning.",
+        "weak_signals": "Suggests only rewriting code or restarting the DB server.",
+        "suggested_follow_up": "What is the difference between an index scan and a sequential scan?"
+      }
+    ]
   }
-};
+}
 
 export default function PlaybackDrawer({
   selectedCard,
