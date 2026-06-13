@@ -1022,3 +1022,113 @@ async def update_negotiation_status(
         "negotiation_id": negotiation_id,
         "new_status": new_status,
     }
+
+
+@router.get("/{negotiation_id}/interview-kit")
+async def get_interview_kit(
+    negotiation_id: str,
+    user=Depends(verify_negotiation_owner),
+):
+    db = get_db()
+    
+    # 1. Fetch negotiation details
+    neg_res = (
+        db.table("negotiations")
+        .select("*, candidate:candidates(*), recruiter:recruiters(*)")
+        .eq("id", negotiation_id)
+        .single()
+        .execute()
+    )
+    if not neg_res.data:
+        raise HTTPException(status_code=404, detail="Negotiation not found")
+    neg = neg_res.data
+
+    # 2. Fetch transcript messages
+    msg_res = (
+        db.table("messages")
+        .select("*")
+        .eq("negotiation_id", negotiation_id)
+        .order("created_at")
+        .execute()
+    )
+    messages = msg_res.data or []
+
+    transcript = ""
+    for m in messages:
+        sender = (
+            "Candidate Agent"
+            if m["sender_role"] == "candidate"
+            else ("Recruiter Agent" if m["sender_role"] == "recruiter" else "System")
+        )
+        transcript += f"{sender}: {m['content']}\n"
+
+    # 3. Call OpenAI to generate translation brief and interview questions
+    import os
+    from openai import OpenAI
+
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="OpenAI API key not configured")
+
+    client = OpenAI(api_key=api_key)
+
+    cand_title = neg["candidate"]["title"] if neg.get("candidate") else "Software Engineer"
+    cand_skills = ", ".join(neg["candidate"]["skills"]) if neg.get("candidate") and neg["candidate"].get("skills") else "N/A"
+    company_name = neg["recruiter"]["company"] if neg.get("recruiter") else "Leapfrog"
+    must_haves = ", ".join(neg["recruiter"]["must_haves"]) if neg.get("recruiter") and neg["recruiter"].get("must_haves") else "N/A"
+
+    system_prompt = """You are an elite AI technical talent strategist. Analyze this negotiation transcript between the Candidate Agent and the Recruiter Agent.
+Generate a high-fidelity HR Translation Brief and a structured Technical Interview Kit.
+
+The response MUST be a single valid JSON object with the following structure:
+{
+  "translation_brief": "A plain English executive summary (max 120 words) describing the candidate's core competency level, direct fit for this company, and communication style.",
+  "verified_skills_highlight": [
+    {
+      "skill": "Python",
+      "evidence": "How this was demonstrated, e.g. 'Has 12 active repos with FastAPI, demonstrated strong async patterns in negotiation.'"
+    }
+  ],
+  "unverified_skills_probe": [
+    "List of 1-3 skills that were claimed but not fully verified or need testing in-person"
+  ],
+  "interview_questions": [
+    {
+      "question": "The actual target interview question to ask.",
+      "expected_signals": "Keywords, design concepts, or technical terms a strong candidate will include in their answer.",
+      "weak_signals": "Red flags or shallow answers to look out for.",
+      "suggested_follow_up": "A quick follow-up probe."
+    }
+  ]
+}
+
+Return ONLY the raw JSON. Do not wrap in markdown or block code. Ensure all quotes are properly escaped.
+"""
+
+    user_content = f"""
+Candidate Title: {cand_title}
+Candidate Skills: {cand_skills}
+Recruiter Company: {company_name}
+Must Have Stack: {must_haves}
+
+Negotiation Transcript:
+{transcript}
+"""
+
+    try:
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content},
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.3,
+        )
+        result_str = resp.choices[0].message.content or "{}"
+        return json.loads(result_str)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate interview kit: {str(e)}"
+        )
+

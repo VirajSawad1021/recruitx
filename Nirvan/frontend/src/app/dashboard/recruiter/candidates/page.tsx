@@ -126,7 +126,7 @@ export default function RecruiterCandidates() {
   const [selectedCardForDrawer, setSelectedCardForDrawer] = useState<
     any | null
   >(null);
-  const [drawerTab, setDrawerTab] = useState<"playback" | "insights">(
+  const [drawerTab, setDrawerTab] = useState<"playback" | "insights" | "brief" | "kit">(
     "playback",
   );
   const [drawerMessages, setDrawerMessages] = useState<any[]>([]);
@@ -794,47 +794,47 @@ export default function RecruiterCandidates() {
 
         <div className="flex flex-wrap gap-3 items-center">
           {activeTab === "pipeline" && (
-            <div className="flex bg-gray-100 p-0.5 rounded-lg border border-card-border">
+            <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50 shadow-sm">
               <button
                 onClick={() => setViewMode("kanban")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   viewMode === "kanban"
-                    ? "bg-white text-foreground shadow-sm"
-                    : "text-muted hover:text-foreground"
+                    ? "bg-white text-slate-800 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                📊 Kanban Board
+                Kanban Board
               </button>
               <button
                 onClick={() => setViewMode("list")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                   viewMode === "list"
-                    ? "bg-white text-foreground shadow-sm"
-                    : "text-muted hover:text-foreground"
+                    ? "bg-white text-slate-800 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                📝 Pipeline List
+                Pipeline List
               </button>
             </div>
           )}
 
-          <div className="flex bg-gray-100 p-0.5 rounded-lg border border-card-border">
+          <div className="flex bg-slate-100/80 p-1 rounded-xl border border-slate-200/50 shadow-sm">
             <button
               onClick={() => setActiveTab("pipeline")}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 activeTab === "pipeline"
-                  ? "bg-white text-foreground shadow-sm"
-                  : "text-muted hover:text-foreground"
+                  ? "bg-white text-slate-800 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
               }`}
             >
               Active Pipeline ({kanbanCards.length})
             </button>
             <button
               onClick={() => setActiveTab("search")}
-              className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${
+              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 activeTab === "search"
-                  ? "bg-white text-foreground shadow-sm"
-                  : "text-muted hover:text-foreground"
+                  ? "bg-white text-slate-800 shadow-sm"
+                  : "text-slate-500 hover:text-slate-800"
               }`}
             >
               Find Talent

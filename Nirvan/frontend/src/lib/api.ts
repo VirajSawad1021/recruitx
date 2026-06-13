@@ -466,3 +466,13 @@ export async function resumeNegotiation(negotiationId: string) {
     return {};
   }
 }
+
+export async function getInterviewKit(negotiationId: string) {
+  try {
+    const res = await apiFetch(`/api/negotiations/${negotiationId}/interview-kit`);
+    return safeJson(res, null);
+  } catch (err) {
+    console.error("getInterviewKit failed:", err);
+    return null;
+  }
+}

@@ -42,6 +42,7 @@ CREATE TABLE candidates (
   profile_id UUID UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
   title TEXT,
   github_url TEXT,
+  github_token TEXT,
   portfolio_url TEXT,
   bio TEXT,
   salary_min INTEGER,

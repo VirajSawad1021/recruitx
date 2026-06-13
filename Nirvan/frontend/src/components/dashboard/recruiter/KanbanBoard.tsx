@@ -154,19 +154,23 @@ export default function KanbanBoard({
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between text-xs text-muted">
-        <p>💡 Tip: Drag & drop candidates between columns to update their recruitment stage instantly.</p>
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-slate-400" /> Sourcing</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-500" /> Negotiating</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-purple-500" /> Scheduled</span>
-          <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Selected</span>
+    <div className="space-y-6">
+      {/* Premium Board Header / Tips & Legend bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs bg-slate-50 border border-slate-200/80 rounded-xl px-5 py-3 shadow-sm">
+        <div className="flex items-center gap-1.5 text-slate-500 font-medium">
+          <span className="text-sm">💡</span>
+          <p>Drag & drop cards to progress candidates through stages in real-time.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-4 text-slate-500 font-semibold">
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-400" /> Sourcing</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" /> Negotiating</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-purple-500" /> Scheduled</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" /> Selected</span>
         </div>
       </div>
 
       {/* Board Deck */}
-      <div className="flex flex-col md:grid md:grid-cols-5 gap-4 overflow-x-auto pb-4 pt-1 select-none">
+      <div className="flex flex-col md:grid md:grid-cols-5 gap-5 overflow-x-auto pb-4 pt-1 select-none">
         {columnTitles.map((col) => {
           const cardsInCol = kanbanCards.filter(c => c.status === col.id);
           

@@ -1,19 +1,109 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import SteeringDock from "./SteeringDock";
 
 interface PlaybackDrawerProps {
   selectedCard: any | null;
-  drawerTab: "playback" | "insights";
-  setDrawerTab: (tab: "playback" | "insights") => void;
+  drawerTab: "playback" | "insights" | "brief" | "kit";
+  setDrawerTab: (tab: "playback" | "insights" | "brief" | "kit") => void;
   messages: any[];
   loading: boolean;
   onClose: () => void;
   onSteer: (instruction: string) => Promise<void>;
   isSteering?: boolean;
 }
+
+const mockKits: Record<string, any> = {
+  "Zoro": {
+    "translation_brief": "Zoro is an elite Systems Architect with deep competency in backend engineering, distributed ledger design, and high-concurrency systems. His agent successfully aligned Go/gRPC requirements and negotiated a base salary of $118k/yr with standard hybrid options. Zoro presents very strong signals for infrastructure scale but is less vocal on product strategy, which aligns with your engineering-heavy requirements.",
+    "verified_skills_highlight": [
+      { "skill": "Go", "evidence": "Verified 14 active repositories, including a custom high-performance Redis client." },
+      { "skill": "gRPC / Protobuf", "evidence": "Demonstrated async Protobuf payload serialization logic in agent negotiation." },
+      { "skill": "PostgreSQL", "evidence": "Designed custom connection pooling and partitioning schemes." }
+    ],
+    "unverified_skills_probe": ["Distributed locking algorithms", "System monitoring & telemetry"],
+    "interview_questions": [
+      {
+        "question": "How do you handle distributed locks in Go using Redis/Redlock? Explain the potential failure cases.",
+        "expected_signals": "Mentions lease times, TTL refresh, network partitions, split-brain scenario, or consensus issues.",
+        "weak_signals": "Uses simple SETNX without expiring TTL or doesn't know of Redlock limits.",
+        "suggested_follow_up": "What happens if a Redis node crashes during lock acquisition?"
+      },
+      {
+        "question": "Design a rate limiter for an API endpoint serving 15,000 requests per second. Which algorithm and database structure would you choose?",
+        "expected_signals": "Token bucket, sliding window counter, Redis sorted sets (ZREMRANGEBYSCORE), clustering.",
+        "weak_signals": "High-level description without algorithm specifics, lack of consideration for distributed concurrency.",
+        "suggested_follow_up": "How would you handle user-specific vs. global IP-based rate limiting?"
+      },
+      {
+        "question": "Describe a scenario where you debugged a concurrency deadlock in Go. What tools did you use?",
+        "expected_signals": "go tool pprof, go test -race flag, thread dump analysis, runtime stacktrace checks.",
+        "weak_signals": "Vague answers, print statements only, does not mention Go race detector.",
+        "suggested_follow_up": "What is the performance overhead of running with -race in staging?"
+      }
+    ]
+  },
+  "Sanji": {
+    "translation_brief": "Sanji is a high-caliber Machine Learning engineer specializing in Natural Language Processing and Deep Learning models. His agent locked a base salary of $95k/yr under stubborn budget constraints. Scanned repositories confirm production PyTorch work and transformers integration. Excellent communication style, but requires direct vetting on large-scale distributed training clusters.",
+    "verified_skills_highlight": [
+      { "skill": "Python / PyTorch", "evidence": "Scanned 8 open-source repositories featuring transformer pipeline fine-tuning." },
+      { "skill": "NLP / Transformers", "evidence": "Implemented Hugging Face model deployment on custom endpoints." },
+      { "skill": "Model Optimization", "evidence": "Fine-tuned models reducing inference latency by 35%." }
+    ],
+    "unverified_skills_probe": ["Kubeflow / Model orchestration", "Data parallel training"],
+    "interview_questions": [
+      {
+        "question": "How do you optimize Transformer model training across multiple GPUs using PyTorch DDP?",
+        "expected_signals": "DistributedDataParallel vs DataParallel, gradient accumulation, mixed-precision (AMP).",
+        "weak_signals": "Refers only to basic DataParallel, doesn't mention communication bottlenecks.",
+        "suggested_follow_up": "What is the difference between model parallelism and data parallelism?"
+      },
+      {
+        "question": "Explain how you would handle vanishing/exploding gradients during deep network backpropagation.",
+        "expected_signals": "Gradient clipping, weight initialization (He/Xavier), residual connections, layer normalization.",
+        "weak_signals": "Suggests only lowering the learning rate without structural solutions.",
+        "suggested_follow_up": "How does LayerNorm differ from BatchNorm in this context?"
+      },
+      {
+        "question": "How do you evaluate and verify that a fine-tuned LLM is not hallucinating or regression-tested?",
+        "expected_signals": "RAG evaluation (RAGAS), BLEU/ROUGE validation, human evaluation, model output temperature control.",
+        "weak_signals": "Simply checks outputs manually for a few examples.",
+        "suggested_follow_up": "What metric would you use to measure factual correctness?"
+      }
+    ]
+  },
+  "Luffy": {
+    "translation_brief": "Luffy is a highly adaptable Fullstack Developer with exceptional technical generalist traits. He excels at startup velocity, rapid Docker packaging, and CI/CD automation pipelines. He agreed to base salary caps while prioritizing learning budgets. Luffy requires technical vetting on databases, database locks, and transactions under load.",
+    "verified_skills_highlight": [
+      { "skill": "Docker", "evidence": "Configured multi-stage builds and minimal image layers." },
+      { "skill": "CI/CD", "evidence": "Wrote GitHub Actions automations triggering auto-tests on merge." },
+      { "skill": "React / Frontend", "evidence": "Scanned 5 responsive dashboards featuring fast UI rendering." }
+    ],
+    "unverified_skills_probe": ["PostgreSQL ACID transactions", "Web security / OWASP top 10"],
+    "interview_questions": [
+      {
+        "question": "Explain database transaction isolation levels (specifically Read Committed vs. Serializable) and how they affect concurrency.",
+        "expected_signals": "Dirty reads, non-repeatable reads, phantom reads, MVCC implementation.",
+        "weak_signals": "Doesn't know what isolation levels do or refers only to basic locking.",
+        "suggested_follow_up": "What is a serialization anomaly and how does PostgreSQL prevent it?"
+      },
+      {
+        "question": "How do you secure a Next.js application against Cross-Site Scripting (XSS) and CSRF attacks?",
+        "expected_signals": "Content Security Policy (CSP), HTTPOnly cookies, CSRF tokens, sanitization.",
+        "weak_signals": "Fails to mention HTTPOnly cookies or relies purely on framework defaults.",
+        "suggested_follow_up": "How does Next.js handle inputs automatically to prevent XSS?"
+      },
+      {
+        "question": "What is your approach to optimizing slow React renders and bundle sizes?",
+        "expected_signals": "useMemo, useCallback, dynamic imports (next/dynamic), code-splitting, tree-shaking.",
+        "weak_signals": "Suggests only upgrading RAM or server hosting bandwidth.",
+        "suggested_follow_up": "How would you diagnose a memory leak in a React client?"
+      }
+    ]
+  }
+};
 
 export default function PlaybackDrawer({
   selectedCard,
@@ -25,9 +115,41 @@ export default function PlaybackDrawer({
   onSteer,
   isSteering = false,
 }: PlaybackDrawerProps) {
+  const [kitData, setKitData] = useState<any>(null);
+  const [loadingKit, setLoadingKit] = useState(false);
+
+  useEffect(() => {
+    if (!selectedCard) {
+      setKitData(null);
+      return;
+    }
+    
+    const isMockCard = String(selectedCard.id).startsWith("kb-");
+    if (isMockCard) {
+      setKitData(null);
+      return;
+    }
+
+    const fetchKit = async () => {
+      setLoadingKit(true);
+      try {
+        const { getInterviewKit } = await import("@/lib/api");
+        const data = await getInterviewKit(selectedCard.id);
+        setKitData(data);
+      } catch (err) {
+        console.error("Failed to fetch interview kit:", err);
+      } finally {
+        setLoadingKit(false);
+      }
+    };
+    fetchKit();
+  }, [selectedCard?.id]);
+
   if (!selectedCard) return null;
 
   const isMock = String(selectedCard.id).startsWith("kb-");
+  const candidateName = selectedCard.candidate_name || "";
+  const activeKit = isMock ? mockKits[candidateName] || mockKits["Zoro"] : kitData;
 
   return (
     <>
@@ -121,35 +243,54 @@ export default function PlaybackDrawer({
         </div>
 
         {/* Tab Selector Inside Drawer */}
-        <div className="flex border-b border-slate-100 bg-slate-50/30 p-1 m-4 rounded-xl border">
+        <div className="flex border-b border-slate-100 bg-slate-50/30 p-1 m-4 rounded-xl border gap-1">
           <button
             onClick={() => setDrawerTab("playback")}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex-1 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${
               drawerTab === "playback"
                 ? "bg-white text-slate-800 shadow-sm"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            🎬 Playback Dialogue
+            🎬 Playback
           </button>
           <button
             onClick={() => setDrawerTab("insights")}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex-1 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${
               drawerTab === "insights"
                 ? "bg-white text-slate-800 shadow-sm"
                 : "text-slate-500 hover:text-slate-800"
             }`}
           >
-            📊 Decision Insights
+            📊 Insights
+          </button>
+          <button
+            onClick={() => setDrawerTab("brief")}
+            className={`flex-1 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${
+              drawerTab === "brief"
+                ? "bg-white text-slate-800 shadow-sm"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            💡 HR Brief
+          </button>
+          <button
+            onClick={() => setDrawerTab("kit")}
+            className={`flex-1 py-1.5 text-[11px] font-semibold rounded-lg transition-all ${
+              drawerTab === "kit"
+                ? "bg-white text-slate-800 shadow-sm"
+                : "text-slate-500 hover:text-slate-800"
+            }`}
+          >
+            📋 Interview Kit
           </button>
         </div>
 
         {/* Drawer Body Area */}
         <div className="flex-1 overflow-y-auto px-6 pb-6 min-h-0 space-y-6">
-          {drawerTab === "playback" ? (
+          {drawerTab === "playback" && (
             /* Dialogue Tab */
             <div className="space-y-6">
-              {/* Inject Steering Dock right inside the dialogue section to give it premium dashboard utility */}
               {selectedCard.status === "active" && (
                 <SteeringDock
                   negotiationId={selectedCard.id}
@@ -160,7 +301,7 @@ export default function PlaybackDrawer({
               )}
 
               <div className="space-y-4">
-                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider text-left">
                   💬 Agent Dialogue Transcript:
                 </span>
                 {loading ? (
@@ -235,7 +376,6 @@ export default function PlaybackDrawer({
                                 : "bg-purple-50/90 border-purple-100 rounded-tl-none hover:bg-purple-50"
                             }`}
                           >
-                            {/* Match highlights */}
                             {msg.content.includes("[AGREED]") ||
                             msg.content.includes("agreement reached") ? (
                               <div className="space-y-2">
@@ -262,167 +402,75 @@ export default function PlaybackDrawer({
                 )}
               </div>
             </div>
-          ) : (
+          )}
+
+          {drawerTab === "insights" && (
             /* Insights Tab */
             <div className="space-y-6">
-              {/* Mathematical Weights Visual Cards */}
               <div className="space-y-3">
-                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5 text-left">
                   📊 Fit Logic & Match Weights
                 </h3>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {/* Weight Card 1 */}
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/40 p-3 flex flex-col justify-between">
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/40 p-3 flex flex-col justify-between text-left">
                     <div>
                       <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase">
                         <span>Dealbreakers</span>
-                        <span className="text-slate-600 bg-slate-100 px-1 rounded">
-                          30% wt
-                        </span>
+                        <span className="text-slate-600 bg-slate-100 px-1 rounded">30% wt</span>
                       </div>
-                      <p className="text-xs font-extrabold text-slate-800 mt-2">
-                        Clear Pass
-                      </p>
+                      <p className="text-xs font-extrabold text-slate-800 mt-2">Clear Pass</p>
                     </div>
                     <div className="mt-3">
                       <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                          className="h-full bg-emerald-500"
-                          style={{ width: "100%" }}
-                        />
+                        <div className="h-full bg-emerald-500" style={{ width: "100%" }} />
                       </div>
-                      <span className="text-[9px] font-bold text-emerald-600 mt-1 block">
-                        100% Score (0 Triggered)
-                      </span>
+                      <span className="text-[9px] font-bold text-emerald-600 mt-1 block">100% Score (0 Triggered)</span>
                     </div>
                   </div>
 
-                  {/* Weight Card 2 */}
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/40 p-3 flex flex-col justify-between">
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/40 p-3 flex flex-col justify-between text-left">
                     <div>
                       <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase">
                         <span>Skills Overlap</span>
-                        <span className="text-slate-600 bg-slate-100 px-1 rounded">
-                          25% wt
-                        </span>
+                        <span className="text-slate-600 bg-slate-100 px-1 rounded">25% wt</span>
                       </div>
                       <p className="text-xs font-extrabold text-slate-800 mt-2">
-                        {selectedCard.candidate_name === "Zoro"
-                          ? "Strong Tech Match"
-                          : selectedCard.candidate_name === "Sanji"
-                            ? "Adequate Overlap"
-                            : "Good Fit"}
+                        {selectedCard.candidate_name === "Zoro" ? "Strong Tech Match" : "Good Fit"}
                       </p>
                     </div>
                     <div className="mt-3">
                       <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                         <div
-                          className={`h-full ${
-                            selectedCard.candidate_name === "Zoro"
-                              ? "bg-emerald-500"
-                              : "bg-amber-500"
-                          }`}
-                          style={{
-                            width:
-                              selectedCard.candidate_name === "Zoro"
-                                ? "90%"
-                                : "70%",
-                          }}
+                          className={`h-full ${selectedCard.candidate_name === "Zoro" ? "bg-emerald-500" : "bg-amber-500"}`}
+                          style={{ width: selectedCard.candidate_name === "Zoro" ? "90%" : "70%" }}
                         />
                       </div>
                       <span className="text-[9px] font-bold text-slate-500 mt-1 block">
-                        {selectedCard.candidate_name === "Zoro"
-                          ? "90% Score (Go/gRPC)"
-                          : selectedCard.candidate_name === "Sanji"
-                            ? "70% Score (PyTorch)"
-                            : "80% Score"}
+                        {selectedCard.candidate_name === "Zoro" ? "90% Score (Go/gRPC)" : "70% Score"}
                       </span>
                     </div>
                   </div>
 
-                  {/* Weight Card 3 */}
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/40 p-3 flex flex-col justify-between">
+                  <div className="rounded-xl border border-slate-100 bg-slate-50/40 p-3 flex flex-col justify-between text-left">
                     <div>
                       <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase">
                         <span>Salary Overlap</span>
-                        <span className="text-slate-600 bg-slate-100 px-1 rounded">
-                          20% wt
-                        </span>
+                        <span className="text-slate-600 bg-slate-100 px-1 rounded">20% wt</span>
                       </div>
-                      <p className="text-xs font-extrabold text-slate-800 mt-2">
-                        Budget Guardrail
-                      </p>
+                      <p className="text-xs font-extrabold text-slate-800 mt-2">Budget Guardrail</p>
                     </div>
                     <div className="mt-3">
                       <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                          className="h-full bg-emerald-500"
-                          style={{ width: "85%" }}
-                        />
+                        <div className="h-full bg-emerald-500" style={{ width: "85%" }} />
                       </div>
-                      <span className="text-[9px] font-bold text-slate-500 mt-1 block">
-                        85% Range Overlap
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Weight Card 4 */}
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/40 p-3 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase">
-                        <span>Priorities</span>
-                        <span className="text-slate-600 bg-slate-100 px-1 rounded">
-                          15% wt
-                        </span>
-                      </div>
-                      <p className="text-xs font-extrabold text-slate-800 mt-2">
-                        Remote Prefs
-                      </p>
-                    </div>
-                    <div className="mt-3">
-                      <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                          className="h-full bg-emerald-500"
-                          style={{ width: "95%" }}
-                        />
-                      </div>
-                      <span className="text-[9px] font-bold text-slate-500 mt-1 block">
-                        95% Aligned (Hybrid)
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Weight Card 5 */}
-                  <div className="rounded-xl border border-slate-100 bg-slate-50/40 p-3 flex flex-col justify-between col-span-2 sm:col-span-1">
-                    <div>
-                      <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase">
-                        <span>Culture Signals</span>
-                        <span className="text-slate-600 bg-slate-100 px-1 rounded">
-                          10% wt
-                        </span>
-                      </div>
-                      <p className="text-xs font-extrabold text-slate-800 mt-2">
-                        Growth Vector
-                      </p>
-                    </div>
-                    <div className="mt-3">
-                      <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                        <div
-                          className="h-full bg-indigo-500"
-                          style={{ width: "80%" }}
-                        />
-                      </div>
-                      <span className="text-[9px] font-bold text-slate-500 mt-1 block">
-                        80% Core Values
-                      </span>
+                      <span className="text-[9px] font-bold text-slate-500 mt-1 block">85% Range Overlap</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Math Explanation Graph/Visual */}
-              <div className="rounded-xl bg-indigo-900 text-white p-4 space-y-2.5 shadow-md">
+              <div className="rounded-xl bg-indigo-900 text-white p-4 space-y-2.5 shadow-md text-left">
                 <span className="text-[9px] font-extrabold uppercase bg-white/20 px-2 py-0.5 rounded tracking-wider font-semibold">
                   Behind-the-Scenes Math Formulas
                 </span>
@@ -431,138 +479,123 @@ export default function PlaybackDrawer({
                   (SalaryOverlap * 0.20) + (PriorityAlignment * 0.15) +
                   (CultureSignals * 0.10)
                 </p>
-                <p className="text-[10px] text-indigo-200/80">
-                  If any hard dealbreaker triggers (e.g. candidate salary
-                  requirements exceed recruiter ceiling AND dealbreaker is set
-                  to true), the Dealbreaker variable drops to 0, resulting in
-                  automatic immediate impasse execution.
-                </p>
               </div>
+            </div>
+          )}
 
-              {/* Audit Logs / Timeline of Compromises */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                  📖 Playback Decision Timeline & Compromises
-                </h3>
-
-                <div className="relative border-l-2 border-slate-100 pl-4 space-y-4 ml-2">
-                  {selectedCard.candidate_name === "Zoro" ? (
-                    <>
-                      <div className="relative">
-                        <div className="absolute -left-[23px] mt-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-sm" />
-                        <h4 className="text-xs font-bold text-slate-800">
-                          Must-Have Skill Verification Verified
-                        </h4>
-                        <p className="text-[10px] text-muted">
-                          Zoro&apos;s agent verified Go and gRPC expertise
-                          against repositories. Skills match score: 90%.
-                        </p>
-                      </div>
-                      <div className="relative">
-                        <div className="absolute -left-[23px] mt-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-indigo-500 shadow-sm" />
-                        <h4 className="text-xs font-bold text-slate-800">
-                          Salary Budget Concession Approved
-                        </h4>
-                        <p className="text-[10px] text-muted">
-                          Recruiter&apos;s agent standard budget ceiling flexed
-                          from $115k to $118k, protecting target ceiling
-                          guardrails while securing peak match.
-                        </p>
-                      </div>
-                      <div className="relative">
-                        <div className="absolute -left-[23px] mt-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-purple-500 shadow-sm" />
-                        <h4 className="text-xs font-bold text-slate-800">
-                          Remote Policy Aligned
-                        </h4>
-                        <p className="text-[10px] text-muted">
-                          Both agents aligned on hybrid remote scheduling (2
-                          days remote onsite requirement) dynamically.
-                        </p>
-                      </div>
-                    </>
-                  ) : selectedCard.candidate_name === "Sanji" ? (
-                    <>
-                      <div className="relative">
-                        <div className="absolute -left-[23px] mt-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-sm" />
-                        <h4 className="text-xs font-bold text-slate-800">
-                          Skills Weight Evaluated
-                        </h4>
-                        <p className="text-[10px] text-muted">
-                          Evaluated NLP & PyTorch project files. Standard match
-                          met: 70%.
-                        </p>
-                      </div>
-                      <div className="relative">
-                        <div className="absolute -left-[23px] mt-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-indigo-500 shadow-sm" />
-                        <h4 className="text-xs font-bold text-slate-800">
-                          Salary Cap Negotiation Defended
-                        </h4>
-                        <p className="text-[10px] text-muted">
-                          Recruiter agent stubborn threshold applied. Standard
-                          budget cap of $95,000 defended, refusing further flex
-                          under strict rules.
-                        </p>
-                      </div>
-                      <div className="relative">
-                        <div className="absolute -left-[23px] mt-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-purple-500 shadow-sm" />
-                        <h4 className="text-xs font-bold text-slate-800">
-                          Agreed Terms Validated
-                        </h4>
-                        <p className="text-[10px] text-muted">
-                          Final compromise accepted by Candidate agent at
-                          $95,000 with hybrid policy terms locked.
-                        </p>
-                      </div>
-                    </>
-                  ) : selectedCard.candidate_name === "Luffy" ? (
-                    <>
-                      <div className="relative">
-                        <div className="absolute -left-[23px] mt-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-sm" />
-                        <h4 className="text-xs font-bold text-slate-800">
-                          DevOps Scanned
-                        </h4>
-                        <p className="text-[10px] text-muted">
-                          Scanned Docker & CI/CD expertise. Base target matched
-                          completely.
-                        </p>
-                      </div>
-                      <div className="relative">
-                        <div className="absolute -left-[23px] mt-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-indigo-500 shadow-sm" />
-                        <h4 className="text-xs font-bold text-slate-800">
-                          Mentoring Allowance Flexed
-                        </h4>
-                        <p className="text-[10px] text-muted">
-                          Recruiter agent added $1,000 learning budget
-                          allowance, satisfying Candidate learning priorities.
-                        </p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="relative">
-                        <div className="absolute -left-[23px] mt-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-sm" />
-                        <h4 className="text-xs font-bold text-slate-800">
-                          Initial Match Scanned
-                        </h4>
-                        <p className="text-[10px] text-muted">
-                          Baseline credentials scanned against recruiter job
-                          description parameters.
-                        </p>
-                      </div>
-                      <div className="relative">
-                        <div className="absolute -left-[23px] mt-1 h-3.5 w-3.5 rounded-full border-2 border-white bg-blue-500 shadow-sm" />
-                        <h4 className="text-xs font-bold text-slate-800">
-                          Compensation Negotiation Initialized
-                        </h4>
-                        <p className="text-[10px] text-muted">
-                          Active back-and-forth dialogue regarding base floor vs
-                          target ceiling started by AI agents.
-                        </p>
-                      </div>
-                    </>
-                  )}
+          {drawerTab === "brief" && (
+            /* HR Translation Brief Tab */
+            <div className="space-y-6 text-left">
+              {loadingKit ? (
+                <div className="flex flex-col items-center justify-center py-20 space-y-3">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                  <p className="text-xs text-muted">Synthesizing translation brief...</p>
                 </div>
-              </div>
+              ) : !activeKit ? (
+                <div className="text-center py-20 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                  <p className="text-xs text-slate-500 font-medium">Translation brief not available for this stage.</p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="rounded-2xl border border-indigo-100 bg-indigo-50/20 p-5 shadow-sm space-y-3">
+                    <h3 className="text-xs font-bold text-indigo-700 uppercase tracking-wider flex items-center gap-1.5">
+                      💡 HR Executive Translation
+                    </h3>
+                    <p className="text-xs text-slate-700 leading-relaxed font-semibold">
+                      {activeKit.translation_brief}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      ✅ Verified Capabilities (Evidence Sourced)
+                    </h3>
+                    <div className="grid grid-cols-1 gap-2.5">
+                      {activeKit.verified_skills_highlight?.map((item: any, i: number) => (
+                        <div key={i} className="rounded-xl border border-slate-100 bg-white p-3.5 shadow-sm space-y-1">
+                          <span className="text-xs font-bold text-foreground block">
+                            {item.skill}
+                          </span>
+                          <span className="text-[11px] text-muted block leading-relaxed">
+                            {item.evidence}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {drawerTab === "kit" && (
+            /* Technical Interview Kit Tab */
+            <div className="space-y-6 text-left">
+              {loadingKit ? (
+                <div className="flex flex-col items-center justify-center py-20 space-y-3">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                  <p className="text-xs text-muted">Generating customized questions...</p>
+                </div>
+              ) : !activeKit ? (
+                <div className="text-center py-20 border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
+                  <p className="text-xs text-slate-500 font-medium">Interview kit not available for this stage.</p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  <div className="rounded-2xl border border-amber-100 bg-amber-50/20 p-5 shadow-sm space-y-2">
+                    <h3 className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                      🔍 Recommended Probe Areas
+                    </h3>
+                    <p className="text-[11px] text-slate-600">
+                      The agent identified these claimed skills as unverified or requiring direct validation:
+                    </p>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {activeKit.unverified_skills_probe?.map((skill: string, i: number) => (
+                        <span key={i} className="text-[10px] bg-amber-100/60 text-amber-800 font-bold px-2 py-0.5 rounded border border-amber-200/50">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                      📋 Custom Technical Questions
+                    </h3>
+                    
+                    <div className="space-y-4">
+                      {activeKit.interview_questions?.map((q: any, i: number) => (
+                        <div key={i} className="rounded-xl border border-card-border bg-white p-5 shadow-sm space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="h-5 w-5 rounded-full bg-accent/10 text-accent flex items-center justify-center text-[10px] font-bold shrink-0">
+                              {i + 1}
+                            </span>
+                            <h4 className="text-xs font-bold text-slate-800">
+                              {q.question}
+                            </h4>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                            <div className="rounded-lg bg-green-50/40 border border-green-100 p-3 text-[11px] space-y-1">
+                              <span className="font-bold text-green-700 block">🟢 Expected Signals:</span>
+                              <span className="text-slate-600 leading-relaxed block">{q.expected_signals}</span>
+                            </div>
+                            <div className="rounded-lg bg-red-50/40 border border-red-100 p-3 text-[11px] space-y-1">
+                              <span className="font-bold text-red-700 block">🔴 Weak Signals / Flags:</span>
+                              <span className="text-slate-600 leading-relaxed block">{q.weak_signals}</span>
+                            </div>
+                          </div>
+
+                          <div className="border-t border-slate-50 pt-2.5 text-[11px] text-muted flex items-start gap-1.5">
+                            <span className="font-semibold text-accent shrink-0">🔎 Probe:</span>
+                            <span>{q.suggested_follow_up}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

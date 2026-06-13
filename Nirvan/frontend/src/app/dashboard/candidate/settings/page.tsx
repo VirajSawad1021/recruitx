@@ -24,6 +24,8 @@ export default function CandidateSettings() {
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [githubUrl, setGithubUrl] = useState("");
+  const [githubToken, setGithubToken] = useState<string | null>(null);
+  const [githubConnecting, setGithubConnecting] = useState(false);
   const [portfolioUrl, setPortfolioUrl] = useState("");
   const [salaryMin, setSalaryMin] = useState("");
   const [remotePref, setRemotePref] = useState(true);
@@ -163,6 +165,7 @@ export default function CandidateSettings() {
         profile_id: user.id,
         title: previewTitle,
         github_url: cleanGithub,
+        github_token: githubToken,
         portfolio_url: cleanPortfolio,
         salary_min: previewSalaryMin ? parseInt(previewSalaryMin) : null,
         remote_pref: previewRemotePref,
@@ -212,6 +215,61 @@ export default function CandidateSettings() {
     }
   };
 
+  const handleConnectGithub = async () => {
+    setGithubConnecting(true);
+    setError(null);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "github",
+        options: {
+          redirectTo: `${window.location.origin}/dashboard/candidate/settings?github_connected=true`,
+          scopes: "read:user,repo",
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error(err);
+      setError(`GitHub OAuth redirect failed: ${err.message}`);
+      setGithubConnecting(false);
+    }
+  };
+
+  const handleDisconnectGithub = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setError("Not authenticated");
+        return;
+      }
+      const { data: cand } = await supabase
+        .from("candidates")
+        .select("id")
+        .eq("profile_id", user.id)
+        .maybeSingle();
+
+      const { error: disconnectErr } = await supabase.from("candidates").upsert({
+        id: cand?.id,
+        profile_id: user.id,
+        github_token: null,
+      });
+
+      if (disconnectErr) throw disconnectErr;
+
+      setGithubToken(null);
+      setGithubUrl("");
+      setAgentResult("GitHub account disconnected successfully.");
+    } catch (err: any) {
+      console.error(err);
+      setError(`GitHub disconnect failed: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -234,6 +292,47 @@ export default function CandidateSettings() {
           router.replace("/dashboard/candidate/settings");
         }
 
+        if (searchParams.get("github_connected") === "true") {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.provider_token;
+            if (token) {
+              const ghRes = await fetch("https://api.github.com/user", {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  Accept: "application/vnd.github+json",
+                },
+              });
+              if (ghRes.ok) {
+                const ghUser = await ghRes.json();
+                const profileUrl = ghUser.html_url || `https://github.com/${ghUser.login}`;
+                
+                const { data: cand } = await supabase
+                  .from("candidates")
+                  .select("id")
+                  .eq("profile_id", user.id)
+                  .maybeSingle();
+                
+                await supabase.from("candidates").upsert({
+                  id: cand?.id,
+                  profile_id: user.id,
+                  github_token: token,
+                  github_url: profileUrl,
+                });
+                
+                setGithubUrl(profileUrl);
+                setGithubToken(token);
+                setAgentResult("GitHub account connected via OAuth successfully!");
+              } else {
+                console.error("Failed to query GitHub user endpoint with provider token");
+              }
+            }
+          } catch (err) {
+            console.error("Error fetching GitHub user info:", err);
+          }
+          router.replace("/dashboard/candidate/settings");
+        }
+
         const { data: prof } = await supabase
           .from("profiles")
           .select("*")
@@ -249,6 +348,7 @@ export default function CandidateSettings() {
         if (cand) {
           setTitle(cand.title || "");
           setGithubUrl(cand.github_url || "");
+          setGithubToken(cand.github_token || null);
           setPortfolioUrl(cand.portfolio_url || "");
           setSalaryMin(cand.salary_min?.toString() || "");
           setRemotePref(cand.remote_pref ?? true);
@@ -343,6 +443,7 @@ export default function CandidateSettings() {
         profile_id: user.id,
         title,
         github_url: cleanGithub,
+        github_token: githubToken,
         portfolio_url: cleanPortfolio,
         salary_min: salaryMin ? parseInt(salaryMin) : null,
         remote_pref: remotePref,
@@ -533,19 +634,57 @@ export default function CandidateSettings() {
               placeholder="A brief professional summary that your agent will use to represent you during negotiations..."
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                GitHub URL
-              </label>
-              <input
-                type="url"
-                value={githubUrl}
-                onChange={(e) => setGithubUrl(e.target.value)}
-                className="w-full rounded-lg border border-card-border bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted/50 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
-                placeholder="github.com/yourhandle"
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-xl border border-card-border bg-subtle/20 p-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-semibold text-muted uppercase tracking-wider">
+                  GitHub Integration
+                </label>
+                {githubToken ? (
+                  <span className="flex items-center gap-1.5 text-[10px] bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full font-medium shadow-sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                    Connected via OAuth
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
+                    Not Connected
+                  </span>
+                )}
+              </div>
+
+              {githubToken ? (
+                <div className="space-y-2">
+                  <div className="text-sm font-semibold text-foreground truncate">
+                    {githubUrl}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDisconnectGithub}
+                    className="text-xs text-red-600 hover:text-red-700 font-semibold transition-colors flex items-center gap-1"
+                  >
+                    Disconnect Account
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-[11px] text-muted">
+                    Authorize Nirvana to read your public and private repo metadata directly from the GitHub API.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleConnectGithub}
+                    disabled={githubConnecting}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-card-border bg-white hover:bg-slate-50 px-4 py-2.5 text-xs font-semibold text-foreground transition-all duration-200 shadow-sm"
+                  >
+                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482C19.138 20.197 22 16.44 22 12.017 22 6.484 17.522 2 12 2z" />
+                    </svg>
+                    {githubConnecting ? "Connecting..." : "Connect GitHub (OAuth)"}
+                  </button>
+                </div>
+              )}
             </div>
+
             <div>
               <label className="block text-sm font-medium text-foreground mb-1.5">
                 Portfolio URL
